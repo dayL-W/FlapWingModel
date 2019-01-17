@@ -19,7 +19,7 @@ class DataShow(object):
         self.df = df
         self.df_pred = df_pred
         
-    def axis(self, Fly_Count=1, axis='Z'):
+    def axis(self, Fly_Count=1, axis='X'):
         col=['IMU_Acc'+axis,'LPOS_V'+axis, 'LPOS_'+axis]
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         acc_z = self.df.loc[index, col[0]]
@@ -46,7 +46,7 @@ class DataShow(object):
         img_name = '../img/'+str(Fly_Count)+'_axis_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
         
-    def pos(self, Fly_Count=1, axis='Z'):
+    def pos(self, Fly_Count=1, axis='X'):
         col='LPOS_'+axis
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         pos = self.df.loc[index, col]
@@ -64,7 +64,7 @@ class DataShow(object):
         img_name = '../img/'+str(Fly_Count)+'_pos_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
         
-    def vel(self, Fly_Count=1, axis='Z'):
+    def vel(self, Fly_Count=1, axis='X'):
         col='LPOS_V'+axis
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         vel = self.df.loc[index, col]
@@ -81,7 +81,7 @@ class DataShow(object):
         img_name = '../img/'+str(Fly_Count)+'_vel_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
  
-    def acc(self,Fly_Count=1,axis='Z'):
+    def acc(self,Fly_Count=1, axis='X'):
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         col = 'IMU_Acc'+axis
         acc = self.df.loc[index, col]
@@ -98,8 +98,27 @@ class DataShow(object):
         
         img_name = '../img/'+str(Fly_Count)+'_acc_'+ axis+'.jpg'
         plt.savefig(img_name, bbox_inches = 'tight')
+    def acc_avg(self,Fly_Count=1, axis='X'):
+        index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         
-    def acc_ned(self,Fly_Count=1,axis='Z'):
+        col0 = 'NED_Acc'+axis
+        col1 = 'Avg_Acc'+axis
+        acc_raw = self.df_pred.loc[index, col0]
+        acc_avg =self.df_pred.loc[index, col1]
+        
+        plt.figure(1, figsize=(6,4))
+        plt.margins(0,0)
+        
+        plt.title('Acc '+axis)
+        plt.xlabel('time s')
+        plt.ylabel(axis+' m/s2')
+        plt.plot(index/100, acc_raw, 'r-')
+        plt.plot(index/100, acc_avg, 'g-')
+        
+        img_name = '../img/'+str(Fly_Count)+'_accavg_'+ axis+'.jpg'
+        plt.savefig(img_name, bbox_inches = 'tight')
+        
+    def acc_ned(self,Fly_Count=1, axis='X'):
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         col = 'NED_Acc'+axis
         acc = self.df.loc[index, col]
@@ -117,7 +136,7 @@ class DataShow(object):
         img_name = '../img/'+str(Fly_Count)+'_ned_acc_'+ axis+'.jpg'
         plt.savefig(img_name, bbox_inches = 'tight')
         
-    def gyro(self,Fly_Count=1,axis='Z'):
+    def gyro(self,Fly_Count=1, axis='X'):
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
         col = 'IMU_Gyro'+axis
         gyro = self.df.loc[index, col]
@@ -180,9 +199,7 @@ class DataShow(object):
 #        ax.spines['left'].set_position(('data', 0))
         
     def angle(self, Fly_Count=1):
-        
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
-        x = self.df.loc[index,'TIME_Sec']
         Pitch = self.df.loc[index,'ATT_Pitch']
         Roll = self.df.loc[index,'ATT_Roll']
         Yaw = self.df.loc[index,'ATT_Yaw']
@@ -194,27 +211,26 @@ class DataShow(object):
         plt.margins(0,0)
         
         plt.subplot(311)
-        plt.title('att')
-        plt.ylabel('pitch rad')
-        plt.plot(x, Pitch, 'r-')
-        plt.plot(x, Pitch_pre, 'g-')
+        plt.ylabel('roll rad')
+        plt.plot(index / 100, Roll, 'r-')
+        plt.plot(index / 100, Roll_pre, 'g-')
         
         plt.subplot(312)
-        plt.ylabel('roll rad')
-        plt.plot(x, Roll, 'r-')
-        plt.plot(x, Roll_pre, 'g-')
+        plt.title('att')
+        plt.ylabel('pitch rad')
+        plt.plot(index / 100, Pitch, 'r-')
+        plt.plot(index / 100, Pitch_pre, 'g-')
         
         plt.subplot(313)
         plt.xlabel('time s')
         plt.ylabel('yaw rad')
-        plt.plot(x, Yaw, 'r-')
-        plt.plot(x, Yaw_pre, 'g-')
+        plt.plot(index / 100, Yaw, 'r-')
+        plt.plot(index / 100, Yaw_pre, 'g-')
         img_name = '../img/'+str(Fly_Count)+'_angle.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
         
     def angle_error(self,Fly_Count=1):
         index = self.df.loc[self.df.Fly_Count==Fly_Count].index
-        
         col = 'ATT_Roll'
         Roll = self.df.loc[index, col]
         Roll_pre =self.df_pred.loc[index, col]

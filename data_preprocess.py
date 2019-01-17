@@ -46,7 +46,7 @@ class Low_Pass_Filter(object):
         return output
 
 class Moving_Average_Filter(object):
-    def __init__(self, N=20):
+    def __init__(self, N=30):
         self.N = N
         self.accx = queue.Queue(maxsize=self.N)
         self.accy = queue.Queue(maxsize=self.N)
@@ -109,19 +109,6 @@ class Data(object):
         #去除油门为0的数据
         drop_index = df.loc[df.RC_C2==0].index
         df.drop(drop_index,inplace=True)
-        
-        
-        
-        save_columns = ['TIME_StartTime',  'ATT_Roll','ATT_Pitch', 'ATT_Yaw',
-        'ATT_RollRate', 'ATT_PitchRate', 'ATT_YawRate','IMU_AccX', 'IMU_AccY', 
-        'IMU_AccZ', 'IMU_GyroX', 'IMU_GyroY','IMU_GyroZ', 'IMU_MagX', 'IMU_MagY',
-        'IMU_MagZ','LPOS_X', 'LPOS_Y','LPOS_Z', 'LPOS_Dist', 'LPOS_DistR', 
-        'LPOS_VX', 'LPOS_VY', 'LPOS_VZ','LPOS_PFlg', 'LPOS_GFlg','LPOS_EPH', 
-        'LPOS_EPV','LAND_Landed','ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz',
-        'RC_C0','RC_C1','RC_C2','RC_C3','RC_C4',
-        'IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ','NED_AccX','NED_AccY','NED_AccZ']
-        
-        df = df.loc[:,save_columns]
         df['TIME_Sec'] = df['TIME_StartTime'] / 1000000
         self.data_df = df.copy()
         df['Fly_Count'] = self.get_Fly_Count()
@@ -228,7 +215,7 @@ class ACC_EKF(EKF):
     '''
 
     def __init__(self, x, freq):
-        EKF.__init__(self, 9, 6, qval=[0.001]*9,rval=[0.008,0.008,0.008,0.0025,0.0025,0.0025],init_x=x)
+        EKF.__init__(self, 9, 6, qval=[0.001]*9,rval=[0.008,0.008,0.008,0.04,0.04,0.04],init_x=x)
         self.dt = 1/freq
 
     def f(self, x):
@@ -256,7 +243,7 @@ class POS_EKF(EKF):
     '''
 
     def __init__(self, x, freq):
-        EKF.__init__(self, 9, 3, qval=[0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001],rval=[0.01,0.01,0.01],init_x=x)
+        EKF.__init__(self, 9, 3, qval=[0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001],rval=[0.09,0.09,0.09],init_x=x)
         self.dt = 1/freq
 
     def f(self, x):
@@ -303,38 +290,55 @@ class ModelTest(object):
         self.Acc_lp = Low_Pass_Filter(sample_freq=500, cutoff_freq=30)
         self.Angle_acc_lp = Low_Pass_Filter(sample_freq=500, cutoff_freq=30)
         
+        self.insert_cols = ['IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ', 'NED_AccX', 'NED_AccY', 'NED_AccZ', 'Avg_AccX', 'Avg_AccY', 'Avg_AccZ', 'Fly_Count','TIME_Sec'] 
         self.gyro_cols = ['IMU_GyroX', 'IMU_GyroY', 'IMU_GyroZ']
         self.acc_cols = ['IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
         self.angle_cols = ['ATT_Roll', 'ATT_Pitch', 'ATT_Yaw']
         self.vel_cols = ['LPOS_VX', 'LPOS_VY', 'LPOS_VZ']
         self.pos_cols = ['LPOS_X', 'LPOS_Y', 'LPOS_Z']
         self.acc_cols = ['IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
-        self.q_cols = ['ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz']
+        self.acc_avg_cols = ['Avg_AccX', 'Avg_AccY', 'Avg_AccZ']
         self.acc_ned_cols = ['NED_AccX', 'NED_AccY', 'NED_AccZ']
+        self.q_cols = ['ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz']
         self.ekf_in_cols = ['IMU_GyroX', 'IMU_GyroY', 'IMU_GyroZ','IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
         self.ekf_out_cols = ['IMU_GyroX', 'IMU_GyroY', 'IMU_GyroZ','IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ', 'IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
         self.angle_acc_cols = ['IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ']
+        
+        self.save_columns = ['TIME_StartTime', 'TIME_Sec','LAND_Landed','Fly_Count',
+                        'ATT_Roll', 'ATT_Pitch', 'ATT_Yaw','ATT_RollRate', 'ATT_PitchRate', 'ATT_YawRate',
+                        'IMU_AccX', 'IMU_AccY', 'IMU_AccZ', 'IMU_GyroX', 'IMU_GyroY','IMU_GyroZ', 
+                        'IMU_MagX', 'IMU_MagY', 'IMU_MagZ', 'LPOS_X', 'LPOS_Y','LPOS_Z', 
+                        'LPOS_Dist', 'LPOS_DistR', 'LPOS_VX', 'LPOS_VY', 'LPOS_VZ', 
+                        'ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz','RC_C0','RC_C1','RC_C2','RC_C3','RC_C4',
+                        'IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ','NED_AccX','NED_AccY','NED_AccZ',
+                        'Avg_AccX', 'Avg_AccY', 'Avg_AccZ']
 
     #数据滤波,加速度的滤波一定要放在最前面，不然会有不连贯的问题
     def filter_data(self):
-        gyro = self.df.loc[0,self.gyro_cols]
-        acc = self.df.loc[0,self.acc_cols]
-        x = np.hstack([gyro,[0,0,0],acc])
-        self.acc_ekf = ACC_EKF(x=x,freq=self.log_freq)
-        for i in self.df.index:
-            raw_data = self.df.loc[i,self.ekf_in_cols].values
-            filter_data = self.acc_ekf.step(raw_data)
-            self.df_pred.loc[i,self.ekf_out_cols] = filter_data
-#        gyro_cols = ['IMU_GyroX', 'IMU_GyroY', 'IMU_GyroZ']
-#        acc_cols = ['IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
-#        
-#        for t in self.df.index:
-#            Gyro = np.array(self.df.loc[t,gyro_cols])
-#            Gyro = self.Gyro_lp.apply(Gyro)
-#            Acc = np.array(self.df.loc[t,acc_cols])
-#            Acc = self.Acc_lp.apply(Acc)
-#            self.df_pred.loc[t,gyro_cols] = Gyro
-#            self.df_pred.loc[t,acc_cols] = Acc
+        for fly in self.df.Fly_Count.unique():
+            fly_index = self.df.loc[self.df.Fly_Count==fly].index
+            init_index = fly_index[0]
+            
+            gyro = self.df.loc[init_index,self.gyro_cols]
+            acc = self.df.loc[init_index,self.acc_cols]
+            x = np.hstack([gyro, [0,0,0], acc])
+            self.acc_ekf = ACC_EKF(x=x, freq=self.log_freq)
+            for i in fly_index:
+                raw_data = self.df.loc[i, self.ekf_in_cols].values
+                raw_data = np.maximum(raw_data,np.array([-2, -3.5, -1.5, -5, -7, -20]))
+                raw_data = np.minimum(raw_data,np.array([2, 3.5, 1, 7, 7, 0]))
+                filter_data = self.acc_ekf.step(raw_data)
+                self.df_pred.loc[i,self.ekf_out_cols] = filter_data
+            
+            self.acc_average_filter = Moving_Average_Filter()
+            self.gyro_average_filter = Moving_Average_Filter(N=4)
+            for i in fly_index:
+                acc = self.df_pred.loc[i, self.acc_cols]
+                gyro = self.df_pred.loc[i, self.gyro_cols]
+                acc = self.acc_average_filter.apply(acc)
+                gyro = self.gyro_average_filter.apply(gyro)
+                self.df_pred.loc[i, self.acc_cols] = acc
+                self.df_pred.loc[i, self.gyro_cols] = gyro
     
     #估计角度
     def estimate_angle(self):
@@ -397,8 +401,6 @@ class ModelTest(object):
             acc0_raw = self.df.loc[init_index, self.acc_cols].values
             q0 = self.df.loc[init_index, self.q_cols].values
             acc0 = self.frame_transform(acc0_raw,q0)
-#            acc0[1] -= 0.24
-#            acc0[0] += 0.055
             acc0[2] += 9.8
                 
             self.df_pred.loc[init_index, self.vel_cols] = vel0
@@ -410,32 +412,15 @@ class ModelTest(object):
             pos1 = pos0
             x = np.hstack([pos0,vel0,acc0])
             self.pos_ekf = POS_EKF(x=x,freq=self.log_freq)
-            #循环
             for t in fly_index[1:]:
-#                dt = (self.df.loc[t,'TIME_StartTime'] - self.df.loc[t-1,'TIME_StartTime']) / 1e6
-#                acc1_raw = self.df_pred.loc[t,acc_cols].values
-#                q1 = self.df.loc[t,q_cols].values
-#                #根据加速度计算dv
-#                dv = acc1_raw * dt
-#                #把dv换算到地面坐标中
-#                dv = self.frame_transform(dv,q1)
-#                #累加到速度中
-#                vel1 += dv
-#                #计算位置
-#                pos1 += 0.5 * dt * (vel1 + vel0)
-                
                 #计算地面坐标下加速度
                 acc1_raw = self.df_pred.loc[t, self.acc_cols]
                 q1 = self.df_pred.loc[t, self.q_cols]
                 acc1 = self.frame_transform(acc1_raw,q1)
                 acc1[2] += 9.8
                 
-                acc_df = self.df.loc[t, self.acc_cols]
-                q_df = self.df.loc[t, self.q_cols]
-                acc_df = self.frame_transform(acc_df, q_df)
-                acc_df[2] += 9.8
                 #积分时间
-                dt = (self.df.loc[t,'TIME_StartTime'] - self.df.loc[t-1,'TIME_StartTime']) / 1e6
+                dt = (self.df_pred.loc[t,'TIME_StartTime'] - self.df_pred.loc[t-1,'TIME_StartTime']) / 1e6
                 #预估速度和位置
                 pos1 += vel1 * dt + 0.5 * acc1 * dt**2
                 vel1 += acc1*dt
@@ -449,6 +434,11 @@ class ModelTest(object):
                 self.df_pred.loc[t, self.vel_cols] = vel1
                 self.df_pred.loc[t, self.pos_cols] = pos1
                 self.df_pred.loc[t, self.acc_ned_cols] = acc1
+                
+                acc_df = self.df.loc[t, self.acc_cols]
+                q_df = self.df.loc[t, self.q_cols]
+                acc_df = self.frame_transform(acc_df, q_df)
+                acc_df[2] += 9.8
                 self.df.loc[t, self.acc_ned_cols] = acc_df
                 
 #                acc0 = acc1
@@ -460,31 +450,41 @@ class ModelTest(object):
                 acc1_df = self.frame_transform(acc1_raw_df,q1_df)
                 acc1_df[2] += 9.8
                 self.df.loc[t, self.acc_ned_cols] = acc1_df
-#    def acc_average_filter(self):
-#        for fly in self.df.Fly_Count.unique():
-#            fly_index = self.df.loc[self.df.Fly_Count==fly].index
-#            self.acc_average_filter = Moving_Average_Filter()
+    def acc_average_filter(self):
+        for fly in self.df_pred.Fly_Count.unique():
+            fly_index = self.df_pred.loc[self.df_pred.Fly_Count==fly].index
+            self.acc_average_filter = Moving_Average_Filter()
+            for i in fly_index:
+                acc = self.df_pred.loc[i, self.acc_ned_cols]
+                acc = self.acc_average_filter.apply(acc)
+                self.df_pred.loc[i, self.acc_avg_cols] = acc
+                
+        for fly in self.df.Fly_Count.unique():
+            fly_index = self.df.loc[self.df.Fly_Count==fly].index
+            self.acc_average_filter = Moving_Average_Filter()
+            for i in fly_index:
+                acc = self.df.loc[i, self.acc_ned_cols]
+                acc = self.acc_average_filter.apply(acc)
+                self.df.loc[i, self.acc_avg_cols] = acc
+                
     def process_data(self):
-        insert_cols = ['IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ',
-                       'NED_AccX','NED_AccY','NED_AccZ','Fly_Count','TIME_Sec'] 
-        temp = pd.DataFrame(columns=insert_cols)
+        temp = pd.DataFrame(columns=self.insert_cols)
         self.df_pred = pd.concat([self.df_pred,temp])
         self.df = pd.concat([self.df,temp])
+        
+        self.df = self.Data.process_data(self.df, test=self.test)
+        self.df = self.df.loc[:,self.save_columns]
+        self.df_pred = self.df_pred.loc[self.df.index, self.save_columns]
+        same_cols = ['TIME_StartTime','TIME_Sec','LAND_Landed','Fly_Count','RC_C0','RC_C1','RC_C2','RC_C3','RC_C4']
+        self.df_pred.loc[:,same_cols] = self.df.loc[:,same_cols]
+        self.df.reset_index(inplace=True)
+        self.df_pred.reset_index(inplace=True)
         
         if not os.path.exists('../cache/filter_df.csv'):
             self.filter_data()
             self.df_pred.to_csv('../cache/filter_df.csv',index=False)
         else:
             self.df_pred = pd.read_csv('../cache/filter_df.csv')
-
-        self.df = self.Data.process_data(self.df, test=self.test)
-        self.df_pred = self.df_pred.loc[self.df.index,self.df.columns]
-        
-        same_cols = ['TIME_StartTime','TIME_Sec','LAND_Landed','Fly_Count','RC_C0','RC_C1','RC_C2','RC_C3','RC_C4']
-        self.df_pred.loc[:,same_cols] = self.df.loc[:,same_cols]
-        self.df.reset_index(inplace=True)
-        self.df_pred.reset_index(inplace=True)
-        
         self.estimate_angle()
 #        self.df_pred.ATT_Yaw = self.df_pred.ATT_Yaw.apply(lambda x: x if x<= 0 else (x-3.14*2))
 #        self.df_pred.ATT_Yaw += 2.5
@@ -493,6 +493,7 @@ class ModelTest(object):
         
         self.estimate_angle_acc()
         self.estimate_pos()
+#        self.acc_average_filter()
         
         self.df.to_csv('../cache/df.csv',index=False)
         self.df_pred.to_csv('../cache/df_pred.csv',index=False)
