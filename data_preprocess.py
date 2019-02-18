@@ -274,12 +274,12 @@ class POS_EKF(EKF):
 2、完成位置估计
 '''
 class ModelTest(object):
-    def __init__(self, file, Kp, Ki, test=True):
+    def __init__(self, file, Kp, Ki, log_freq=100, test=True):
         self.file = file
         self.Kp = Kp
         self.Ki = Ki
         self.test = test
-        self.log_freq = 125
+        self.log_freq = log_freq
         
         self.Data = Data(file=file)
         self.df = self.Data.read_data()
@@ -290,13 +290,15 @@ class ModelTest(object):
         self.Acc_lp = Low_Pass_Filter(sample_freq=500, cutoff_freq=30)
         self.Angle_acc_lp = Low_Pass_Filter(sample_freq=500, cutoff_freq=30)
         
-        self.insert_cols = ['IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ', 'NED_AccX', 'NED_AccY', 'NED_AccZ', 'Avg_AccX', 'Avg_AccY', 'Avg_AccZ', 'Fly_Count','TIME_Sec'] 
+        self.insert_cols = ['IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ', 'NED_AccX', 'NED_AccY', 'NED_AccZ', \
+                            'Avg_AccX', 'Avg_AccY', 'Avg_AccZ', 'Fly_Count','TIME_Sec',\
+                            'Vehicle_VelX','Vehicle_VelY','Vehicle_VelZ'] 
         self.gyro_cols = ['IMU_GyroX', 'IMU_GyroY', 'IMU_GyroZ']
         self.acc_cols = ['IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
         self.angle_cols = ['ATT_Roll', 'ATT_Pitch', 'ATT_Yaw']
         self.vel_cols = ['LPOS_VX', 'LPOS_VY', 'LPOS_VZ']
+        self.veh_vel_cols = ['Vehicle_VelX','Vehicle_VelY','Vehicle_VelZ']
         self.pos_cols = ['LPOS_X', 'LPOS_Y', 'LPOS_Z']
-        self.acc_cols = ['IMU_AccX', 'IMU_AccY', 'IMU_AccZ']
         self.acc_avg_cols = ['Avg_AccX', 'Avg_AccY', 'Avg_AccZ']
         self.acc_ned_cols = ['NED_AccX', 'NED_AccY', 'NED_AccZ']
         self.q_cols = ['ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz']
@@ -311,7 +313,7 @@ class ModelTest(object):
                         'LPOS_Dist', 'LPOS_DistR', 'LPOS_VX', 'LPOS_VY', 'LPOS_VZ', 
                         'ATT_qw', 'ATT_qx', 'ATT_qy', 'ATT_qz','RC_C0','RC_C1','RC_C2','RC_C3','RC_C4',
                         'IMU_AngleAccX', 'IMU_AngleAccY', 'IMU_AngleAccZ','NED_AccX','NED_AccY','NED_AccZ',
-                        'Avg_AccX', 'Avg_AccY', 'Avg_AccZ']
+                        'Avg_AccX', 'Avg_AccY', 'Avg_AccZ','Vehicle_VelX','Vehicle_VelY','Vehicle_VelZ']
 
     #数据滤波,加速度的滤波一定要放在最前面，不然会有不连贯的问题
     def filter_data(self):
@@ -330,11 +332,17 @@ class ModelTest(object):
                 filter_data = self.acc_ekf.step(raw_data)
                 self.df_pred.loc[i,self.ekf_out_cols] = filter_data
             
-            self.acc_average_filter = Moving_Average_Filter()
-            self.gyro_average_filter = Moving_Average_Filter(N=4)
+            self.acc_average_filter = Moving_Average_Filter(N=15)
+            self.gyro_average_filter = Moving_Average_Filter(N=1)
             for i in fly_index:
-                acc = self.df_pred.loc[i, self.acc_cols]
-                gyro = self.df_pred.loc[i, self.gyro_cols]
+                acc = self.df_pred.loc[i, self.acc_cols].values
+                gyro = self.df_pred.loc[i, self.gyro_cols].values
+                
+#                acc = np.maximum(acc, np.array([-5, -7, -20]))
+#                gyro = np.maximum(gyro, np.array([-2, -3.5, -1.5]))
+#                acc = np.minimum(acc, np.array([7, 7, 0]))
+#                gyro = np.minimum(gyro, np.array([2, 3.5, 1]))
+                
                 acc = self.acc_average_filter.apply(acc)
                 gyro = self.gyro_average_filter.apply(gyro)
                 self.df_pred.loc[i, self.acc_cols] = acc
@@ -356,8 +364,8 @@ class ModelTest(object):
             
             for t in fly_index[1:]:
                 Gyro = np.array(self.df_pred.loc[t,self.gyro_cols])
-                Acc = np.array(self.df.loc[t,self.acc_cols])
-                dt = (self.df.loc[t,'TIME_StartTime'] - self.df.loc[t-1,'TIME_StartTime']) / 1e6
+                Acc = np.array(self.df_pred.loc[t,self.acc_cols])
+                dt = (self.df_pred.loc[t,'TIME_StartTime'] - self.df_pred.loc[t-1,'TIME_StartTime']) / 1e6
 #                (q,Angle) = self.Imu.update(Gyro, Acc)
                 (q,Angle) = self.Integral_Angle.update(Gyro, dt)
                 
@@ -466,7 +474,17 @@ class ModelTest(object):
                 acc = self.df.loc[i, self.acc_ned_cols]
                 acc = self.acc_average_filter.apply(acc)
                 self.df.loc[i, self.acc_avg_cols] = acc
-                
+    def estimate_vehicle_vel(self):
+        for fly in self.df.Fly_Count.unique():
+            fly_index = self.df.loc[self.df.Fly_Count==fly].index
+            v0 = self.df.loc[fly_index[0],['LPOS_VX', 'LPOS_VY', 'LPOS_VZ']].values
+            self.df_pred.loc[fly_index[0], self.veh_vel_cols] = v0
+            for i in fly_index[1:]:
+                acc = self.df_pred.loc[i, self.acc_cols].values
+                acc[2] += 9.8
+                dt = (self.df_pred.loc[i,'TIME_StartTime'] - self.df_pred.loc[i-1,'TIME_StartTime']) / 1e6
+                v0 = v0 + dt * acc
+                self.df_pred.loc[i, self.veh_vel_cols] = v0
     def process_data(self):
         temp = pd.DataFrame(columns=self.insert_cols)
         self.df_pred = pd.concat([self.df_pred,temp])
@@ -480,11 +498,13 @@ class ModelTest(object):
         self.df.reset_index(inplace=True)
         self.df_pred.reset_index(inplace=True)
         
+        
         if not os.path.exists('../cache/filter_df.csv'):
             self.filter_data()
             self.df_pred.to_csv('../cache/filter_df.csv',index=False)
         else:
             self.df_pred = pd.read_csv('../cache/filter_df.csv')
+            
         self.estimate_angle()
 #        self.df_pred.ATT_Yaw = self.df_pred.ATT_Yaw.apply(lambda x: x if x<= 0 else (x-3.14*2))
 #        self.df_pred.ATT_Yaw += 2.5
@@ -493,15 +513,20 @@ class ModelTest(object):
         
         self.estimate_angle_acc()
         self.estimate_pos()
-#        self.acc_average_filter()
         
+        self.estimate_vehicle_vel()
         self.df.to_csv('../cache/df.csv',index=False)
         self.df_pred.to_csv('../cache/df_pred.csv',index=False)
-        
+
+def save_curve_data(df,Fly_count=1):
+    index =  df.loc[df.Fly_Count==Fly_count].index
+    pitch_df = df.loc[index,['ATT_Pitch','ATT_Roll','ATT_Yaw','RC_C0','RC_C1','RC_C2','RC_C3','LPOS_VX','LPOS_VY','LPOS_VZ','Vehicle_VelX','IMU_GyroY','IMU_AccX']]
+    path = '../cache/curve_data/'+str(Fly_count)+'data.csv'
+    pitch_df.to_csv(path)
 if __name__ == '__main__':
     t0 = time.time()
     
-    model_test = ModelTest(file='../raw_data/fly-3.2.csv', Kp=3, Ki=0.0, test=False)
+    model_test = ModelTest(file='../raw_data/fly-3.2.csv', Kp=3, Ki=0.02, log_freq=89, test=False)
     model_test.process_data()
     show = data_visualiz.DataShow(df=model_test.df, df_pred=model_test.df_pred)
     t1 = time.time()

@@ -6,6 +6,7 @@ Created on Fri Jan  4 10:18:39 2019
 """
 import matplotlib.pyplot as plt
 
+time_div = 89
 #figsize(12.5, 4) # 设置 figsize
 plt.rcParams['savefig.dpi'] = 100 #图片像素
 plt.rcParams['figure.dpi'] = 100 #分辨率
@@ -32,16 +33,16 @@ class DataShow(object):
         plt.subplot(311)
         plt.title('axis '+axis)
         plt.ylabel('acc m/s2')
-        plt.plot(index/100, acc_z, 'r--')
+        plt.plot(index/time_div, acc_z, 'r--')
         
         plt.subplot(312)
         plt.ylabel('v m/s')
-        plt.plot(index/100, vz, 'b--')
+        plt.plot(index/time_div, vz, 'b--')
         
         plt.subplot(313)
         plt.xlabel('time s')
         plt.ylabel('pos m')
-        plt.plot(index/100, z, 'g--')
+        plt.plot(index/time_div, z, 'g--')
         
         img_name = '../img/'+str(Fly_Count)+'_axis_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -58,8 +59,8 @@ class DataShow(object):
         plt.title('pos '+axis)
         plt.xlabel('time s')
         plt.ylabel(axis+' m')
-        plt.plot(index/100, pos, 'r-')
-        plt.plot(index/100, pos_pred, 'g-')
+        plt.plot(index/time_div, pos, 'r-')
+        plt.plot(index/time_div, pos_pred, 'g-')
         
         img_name = '../img/'+str(Fly_Count)+'_pos_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -75,8 +76,8 @@ class DataShow(object):
         
         plt.title('vel '+axis)
         plt.ylabel(axis+' m/s')
-        plt.plot(index/100, vel, 'r--')
-        plt.plot(index/100, vel_pred, 'g--')
+        plt.plot(index/time_div, vel, 'r--')
+        plt.plot(index/time_div, vel_pred, 'g--')
         
         img_name = '../img/'+str(Fly_Count)+'_vel_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -93,8 +94,8 @@ class DataShow(object):
         plt.title('Acc '+axis)
         plt.xlabel('time s')
         plt.ylabel(axis+' m/s2')
-        plt.plot(index/100, acc, 'r-')
-        plt.plot(index/100, acc_pred, 'g-')
+        plt.plot(index/time_div, acc, 'r-')
+        plt.plot(index/time_div, acc_pred, 'g-')
         
         img_name = '../img/'+str(Fly_Count)+'_acc_'+ axis+'.jpg'
         plt.savefig(img_name, bbox_inches = 'tight')
@@ -112,8 +113,8 @@ class DataShow(object):
         plt.title('Acc '+axis)
         plt.xlabel('time s')
         plt.ylabel(axis+' m/s2')
-        plt.plot(index/100, acc_raw, 'r-')
-        plt.plot(index/100, acc_avg, 'g-')
+        plt.plot(index/time_div, acc_raw, 'r-')
+        plt.plot(index/time_div, acc_avg, 'g-')
         
         img_name = '../img/'+str(Fly_Count)+'_accavg_'+ axis+'.jpg'
         plt.savefig(img_name, bbox_inches = 'tight')
@@ -130,8 +131,8 @@ class DataShow(object):
         plt.title('NED Acc '+axis)
         plt.xlabel('time s')
         plt.ylabel(axis+' m/s2')
-        plt.plot(index/100, acc, 'r-')
-        plt.plot(index/100, acc_pred, 'g-')
+        plt.plot(index/time_div, acc, 'r-')
+        plt.plot(index/time_div, acc_pred, 'g-')
         
         img_name = '../img/'+str(Fly_Count)+'_ned_acc_'+ axis+'.jpg'
         plt.savefig(img_name, bbox_inches = 'tight')
@@ -147,8 +148,8 @@ class DataShow(object):
         
         plt.title('Gyro filter')
         plt.ylabel(axis+' rad')
-        plt.plot(index/100, gyro, 'r-')
-        plt.plot(index/100, gyro_pred, 'g-')
+        plt.plot(index/time_div, gyro, 'r-')
+        plt.plot(index/time_div, gyro_pred, 'g-')
         
         img_name = '../img/'+str(Fly_Count)+'_gyro_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -253,17 +254,17 @@ class DataShow(object):
         plt.title('att err')
         plt.title('Pitch err')
         plt.ylabel('Pitch rad')
-        plt.plot(index/100, Pitch_Error, 'r-')
+        plt.plot(index/time_div, Pitch_Error, 'r-')
         
         plt.subplot(312)
         plt.ylabel('Roll rad')
-        plt.plot(index/100, Roll_Error, 'r-')
+        plt.plot(index/time_div, Roll_Error, 'r-')
         
         plt.subplot(313)
         plt.title('Yaw err')
         plt.xlabel('time s')
         plt.ylabel('Yaw rad')
-        plt.plot(index/100, Yaw_Error, 'r-')
+        plt.plot(index/time_div, Yaw_Error, 'r-')
         img_name = '../img/'+str(Fly_Count)+'_angle_err.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
         
@@ -280,12 +281,12 @@ class DataShow(object):
         plt.subplot(211)
         plt.title('Angle acc')
         plt.ylabel(axis+' gyro rad/s')
-        plt.plot(index/100, gyro, 'r-')
+        plt.plot(index/time_div, gyro, 'r-')
         
         plt.subplot(212)
         plt.xlabel('time s')
         plt.ylabel(axis+' angle_acc rad/s2')
-        plt.plot(index/100, angle_acc, 'r-')
+        plt.plot(index/time_div, angle_acc, 'r-')
         img_name = '../img/'+str(Fly_Count)+'_angle_acc_'+ axis+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
     def throttle(self,Fly_Count=1):
@@ -298,7 +299,7 @@ class DataShow(object):
         
         plt.title('throttle')
         plt.xlabel('time s')
-        plt.plot(index/100, thro, 'r-')
+        plt.plot(index/time_div, thro, 'r-')
 
         img_name = '../img/'+str(Fly_Count)+'throttle'+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -313,7 +314,7 @@ class DataShow(object):
         
         plt.title('elevator')
         plt.xlabel('time s')
-        plt.plot(index/100, elev, 'r-')
+        plt.plot(index/time_div, elev, 'r-')
 
         img_name = '../img/'+str(Fly_Count)+'elevator'+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
@@ -328,7 +329,7 @@ class DataShow(object):
         
         plt.title('rudder')
         plt.xlabel('time s')
-        plt.plot(index/100, rudder, 'r-')
+        plt.plot(index/time_div, rudder, 'r-')
 
         img_name = '../img/'+str(Fly_Count)+'rudder'+'.jpg'
         plt.savefig(img_name,bbox_inches = 'tight')
